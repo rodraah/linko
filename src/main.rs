@@ -50,8 +50,9 @@ fn build_ui(application: &gtk::Application) {
             let mut app_display_name = String::new();
             let mut app_exec_command = String::new();
             let mut app_display_icon:String = "web-browser".to_string();
-            // Check if the exec command contains %u TODO! and %U
-            let mut do_contain_u = false;
+            // Check if the exec command contains %u and %U
+            let mut contains_u = false;
+            let mut contains_upper_u = false;
             // Check if it's the first entry for name, exec and icon
             let mut name_check = false;
             let mut exec_check = false;
@@ -67,12 +68,13 @@ fn build_ui(application: &gtk::Application) {
                         continue;
                     };
                 };
-                let contain_u = line.contains("%u");
                 if line.starts_with("Exec=") == true {
                     if exec_check == false {
                         app_exec_command = split_string(line, "Exec=", 1);
-                        if contain_u == true {
-                            do_contain_u = true;
+                        if line.contains("%u") == true {
+                            contains_u = true;
+                        } if line.contains ("%U") == true {
+                            contains_upper_u = true;
                         };
                         exec_check = true;
                         continue;
@@ -95,15 +97,21 @@ fn build_ui(application: &gtk::Application) {
             }
             let link = &args_vec[1];
 
-            let mut command_0 = app_exec_command;
-            if do_contain_u == true {
-                command_0 = split_string(&command_0, "%u", 0);
+            // TODO! use string.replace instead of creating three variables
+            let mut exec_command = app_exec_command;
+            let mut post_command = String::new();
+            if contains_u == true {
+                post_command = split_string(&exec_command, " %u", 1);
+                exec_command = split_string(&exec_command, " %u", 0);
+            } if contains_upper_u == true {
+                post_command = split_string(&exec_command, " %U", 1);
+                exec_command = split_string(&exec_command, " %U", 0);
             }
-            let command = format!("{} {}", command_0, link);
+            let command = format!("{} {} {}", exec_command, link, post_command);
 
             // UI things
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-
+            
             let label = gtk::Label::builder()
                 .label(&app_display_name)
                 .width_chars(5)
@@ -155,6 +163,7 @@ fn build_ui(application: &gtk::Application) {
     window.show();
 }
 
+// Config
 fn get_app_path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| { 
         println!("There's no home directory!");
@@ -169,9 +178,15 @@ fn get_app_path() -> PathBuf {
     apps_path
 }
 
+// Helper
 fn split_string(line: &str, cut: &str, position: usize) -> String {
-    let almost_cut:Vec<&str> = line.split(cut).collect();
+    let almost_cut = line.split_once(cut).unwrap_or_default();
     // Isn't necessary to handle the case where the string isn't cutted
-    let cutted = almost_cut[position].to_string();
+    let cutted;
+    match position {
+        0 => cutted = almost_cut.0.to_string(),
+        1 => cutted = almost_cut.1.to_string(),
+        _ => panic!(),
+    };
     cutted
 }
