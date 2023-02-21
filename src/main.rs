@@ -3,8 +3,7 @@ use gtk::prelude::*;
 use gtk::gdk;
 use util::*;
 use std::{
-    fs::{create_dir_all, read_dir, File}, 
-    path::PathBuf,
+    fs::{read_dir, File}, 
     io::Read,
     process::Command
 };
@@ -12,14 +11,14 @@ use std::{
 mod util;
 
 fn main() {
-    let application = gtk::Application::builder()
+    let application = adw::Application::builder()
         .application_id("rodraah.Linko")
         .build();
     application.connect_startup(build_ui);
     application.run();
 }
 
-fn build_ui(application: &gtk::Application) {
+fn build_ui(application: &adw::Application) {
     let window = gtk::Window::new();
     window.set_application(Some(application));
     window.set_default_width(300);
@@ -35,14 +34,15 @@ fn build_ui(application: &gtk::Application) {
     app_container.set_margin_bottom(30);
     app_container.set_margin_start(30);
     app_container.set_margin_end(30);
-    app_container.set_halign(gtk::Align::Start);
-    app_container.set_valign(gtk::Align::Start);
 
     // check if the linko directory is empty
-    let is_empty = read_dir(get_app_path().clone()).unwrap().next().is_none();
-    // for every app, create a button and append it to the container.
-    if is_empty == false {
-        for app_desktop_path in read_dir(get_app_path().clone()).unwrap() {
+    let is_empty = read_dir(get_app_path()).unwrap().next().is_none();
+    if is_empty {
+        let empty_label = gtk::Label::new(Some("There's no desktop files!"));
+        app_container.append(&empty_label);
+    } else {
+        // for every app, create a button and append it to the container.
+        for app_desktop_path in read_dir(get_app_path()).unwrap() {
             let app_desktop_path = app_desktop_path.expect("failed to open the app path").path();
             let mut desktop_file = File::open(app_desktop_path).expect("Failed to open the desktop file");
             let mut desktop_content = String::new();
@@ -61,34 +61,28 @@ fn build_ui(application: &gtk::Application) {
             let mut exec_check = false;
             let mut icon_check = false;
             for line in desktop_content.lines() {
-                if line.starts_with("#") {
+                if line.starts_with('#') {
                     continue;
                 };
-                if line.starts_with("Name=") == true {
-                    if name_check == false {
-                        app_display_name = split_string(line, "Name=", 1);
-                        name_check = true;
-                        continue;
-                    };
+                if line.starts_with("Name=") && !name_check {
+                    app_display_name = split_string(line, "Name=", 1);
+                    name_check = true;
+                    continue;
                 };
-                if line.starts_with("Exec=") == true {
-                    if exec_check == false {
-                        app_exec_command = split_string(line, "Exec=", 1);
-                        if line.contains("%u") == true {
-                            contains_u = true;
-                        } if line.contains ("%U") == true {
-                            contains_upper_u = true;
-                        };
-                        exec_check = true;
-                        continue;
+                if line.starts_with("Exec=") && !exec_check {
+                    app_exec_command = split_string(line, "Exec=", 1);
+                    if line.contains("%u") {
+                        contains_u = true;
+                    } else if line.contains ("%U") {
+                        contains_upper_u = true;
                     };
+                    exec_check = true;
+                    continue;
                 };
-                if line.starts_with("Icon=") == true {
-                    if icon_check == false {
-                        app_display_icon = split_string(line, "Icon=", 1);
-                        icon_check = true;
-                        continue;
-                    };
+                if line.starts_with("Icon=") && !icon_check {
+                    app_display_icon = split_string(line, "Icon=", 1);
+                    icon_check = true;
+                    continue;
                 };
             };
             // Get the link from command-line arguments and check if
@@ -103,10 +97,10 @@ fn build_ui(application: &gtk::Application) {
             // TODO! use string.replace instead of creating three variables
             let mut exec_command = app_exec_command;
             let mut post_command = String::new();
-            if contains_u == true {
+            if contains_u {
                 post_command = split_string(&exec_command, " %u", 1);
                 exec_command = split_string(&exec_command, " %u", 0);
-            } if contains_upper_u == true {
+            } else if contains_upper_u {
                 post_command = split_string(&exec_command, " %U", 1);
                 exec_command = split_string(&exec_command, " %U", 0);
             }
@@ -143,11 +137,8 @@ fn build_ui(application: &gtk::Application) {
             button_container.append(&label);
             app_container.append(&button_container);
         }
-    } else {
-        let empty_label = gtk::Label::new(Some("There's no desktop files!"));
-        app_container.append(&empty_label);
     };
-    
+
     // Create a button to copy the link to clipboard
     let clipboard_button = gtk::Button::with_label("Copy to clipboard");
     // On click it copies the link to clipboard
@@ -164,19 +155,4 @@ fn build_ui(application: &gtk::Application) {
     window.set_child(Some(&app_container));
     // Show the window.
     window.show();
-}
-
-// Config
-fn get_app_path() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| { 
-        println!("There's no home directory!");
-        quit::with_code(0);
-    });
-    let apps_path = PathBuf::from(home).join(".config/linko");
-    if ! apps_path.exists() {
-        create_dir_all(&apps_path).unwrap_or_else(|e| {
-            println!("Failed to create config directory: {}", e);
-        });
-    }
-    apps_path
 }
