@@ -7,20 +7,19 @@ use std::{
 use crate::util;
 
 pub fn entry(app_container: &gtk::Box) {    
+    let dir = read_dir(util::get_app_path()).unwrap().collect::<Vec<_>>();
     // check if the linko directory is empty
-    let is_empty = read_dir(util::get_app_path()).unwrap().next().is_none();
-    if is_empty {
+    if dir.is_empty() {
         let empty_label = gtk::Label::new(Some("There's no desktop files!"));
         app_container.append(&empty_label);
     } else {
         // for every app, create a button and append it to the container.
-        for app_desktop_path in read_dir(util::get_app_path()).unwrap() {
+        for app_desktop_path in dir {
             let app_desktop_path = app_desktop_path.expect("Failed to open the app path");
             let app = util::parse_desktop_file(app_desktop_path);
             let app_display_name = app.0;
             let app_display_icon = app.1;
             let command = app.2;
-
 
             // UI things
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
