@@ -1,14 +1,9 @@
 use gtk4 as gtk;
 use gtk::prelude::*;
 use gtk::gdk;
-use util::*;
-use std::{
-    fs::{read_dir, File}, 
-    io::Read,
-    process::Command
-};
 
 mod util;
+mod entry;
 
 fn main() {
     let application = adw::Application::builder()
@@ -34,111 +29,10 @@ fn build_ui(application: &adw::Application) {
     app_container.set_margin_bottom(30);
     app_container.set_margin_start(30);
     app_container.set_margin_end(30);
-
-    // check if the linko directory is empty
-    let is_empty = read_dir(get_app_path()).unwrap().next().is_none();
-    if is_empty {
-        let empty_label = gtk::Label::new(Some("There's no desktop files!"));
-        app_container.append(&empty_label);
-    } else {
-        // for every app, create a button and append it to the container.
-        for app_desktop_path in read_dir(get_app_path()).unwrap() {
-            let app_desktop_path = app_desktop_path.expect("failed to open the app path").path();
-            let mut desktop_file = File::open(app_desktop_path).expect("Failed to open the desktop file");
-            let mut desktop_content = String::new();
-            desktop_file.read_to_string(&mut desktop_content)
-                .expect("Failed to read the desktop file");
-            //TODO! Create functions to get the app_display_name, the app_exec_command and the app_display_icon from the desktop_content
-            // Set fallback values for app_display_name, app_exec_command and app_display_icon.
-            let mut app_display_name = String::new();
-            let mut app_exec_command = String::new();
-            let mut app_display_icon:String = "web-browser".to_string();
-            // Check if the exec command contains %u and %U
-            let mut contains_u = false;
-            let mut contains_upper_u = false;
-            // Check if it's the first entry for name, exec and icon
-            let mut name_check = false;
-            let mut exec_check = false;
-            let mut icon_check = false;
-            for line in desktop_content.lines() {
-                if line.starts_with('#') {
-                    continue;
-                };
-                if line.starts_with("Name=") && !name_check {
-                    app_display_name = split_string(line, "Name=", 1);
-                    name_check = true;
-                    continue;
-                };
-                if line.starts_with("Exec=") && !exec_check {
-                    app_exec_command = split_string(line, "Exec=", 1);
-                    if line.contains("%u") {
-                        contains_u = true;
-                    } else if line.contains ("%U") {
-                        contains_upper_u = true;
-                    };
-                    exec_check = true;
-                    continue;
-                };
-                if line.starts_with("Icon=") && !icon_check {
-                    app_display_icon = split_string(line, "Icon=", 1);
-                    icon_check = true;
-                    continue;
-                };
-            };
-            // Get the link from command-line arguments and check if
-            // a link is provided
-            let args_vec:Vec<String> = std::env::args().collect();
-            if args_vec.len() < 2 {
-                println!("Error: There's no link!");
-                quit::with_code(1);
-            }
-            let link = &args_vec[1];
-
-            // TODO! use string.replace instead of creating three variables
-            let mut exec_command = app_exec_command;
-            let mut post_command = String::new();
-            if contains_u {
-                post_command = split_string(&exec_command, " %u", 1);
-                exec_command = split_string(&exec_command, " %u", 0);
-            } else if contains_upper_u {
-                post_command = split_string(&exec_command, " %U", 1);
-                exec_command = split_string(&exec_command, " %U", 0);
-            }
-            let command = format!("{} {} {}", exec_command, link, post_command);
-
-            // UI things
-            let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-            
-            let label = gtk::Label::builder()
-                .label(&app_display_name)
-                .width_chars(5)
-                .single_line_mode(true)
-                .build();
-
-            let button = gtk::Button::builder()
-                .height_request(20)
-                .width_request(20)
-                .name(&app_display_name)
-                .icon_name(&app_display_icon)
-                .build();
-
-            // when button is clicked, open the link 
-            // using the chosen browser
-            button.connect_clicked(move |_| {
-                println!("{}", command);
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(command.clone())
-                    .spawn()
-                    .expect("Failed to open link with desired browser");
-                quit::with_code(1);
-            });
-            button_container.append(&button);
-            button_container.append(&label);
-            app_container.append(&button_container);
-        }
-    };
-
+    
+    // browser entries.
+    entry::entry(&app_container);
+    
     // Create a button to copy the link to clipboard
     let clipboard_button = gtk::Button::with_label("Copy to clipboard");
     // On click it copies the link to clipboard
