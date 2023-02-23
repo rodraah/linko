@@ -19,7 +19,7 @@ pub fn entry(app_container: &gtk::Box) {
             let app = util::parse_desktop_file(app_desktop_path);
             let app_display_name = app.0;
             let app_display_icon = app.1;
-            let command = app.2;
+            //let command = app.2;
 
             // UI things
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
@@ -40,10 +40,11 @@ pub fn entry(app_container: &gtk::Box) {
             // when button is clicked, open the link 
             // using the chosen browser
             button.connect_clicked(move |_| {
+                let command = &app.2;
                 println!("{}", command);
                 Command::new("sh")
                     .arg("-c")
-                    .arg(command.clone())
+                    .arg(command)
                     .spawn()
                     .expect("Failed to open URL with desired browser");
                 quit::with_code(1);
