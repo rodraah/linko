@@ -56,10 +56,7 @@ fn build_ui(application: &adw::Application) {
     scrolled_window.set_child(Some(&app_container));
     
     // Create a button to copy the link to clipboard
-    let mut clipboard_classes = Vec::new();
-    clipboard_classes.push("heading");
-    clipboard_classes.push("pill");
-    clipboard_classes.push("button1");
+    let clipboard_classes = vec!["heading", "pill", "button1"];
 
     let clipboard_button = gtk::Button::builder()
         .label("Copy to clipboard").css_classes(clipboard_classes)

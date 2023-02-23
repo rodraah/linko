@@ -25,8 +25,7 @@ pub fn entry(app_container: &gtk::Box) {
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 15);
             button_container.set_height_request(30);
             
-            let mut label_class:Vec<String> = Vec::new();
-            label_class.push("body".to_string());
+            let label_class = vec!["body"];
 
             let label = gtk::Label::builder()
                 .label(&app_display_name)
@@ -40,8 +39,7 @@ pub fn entry(app_container: &gtk::Box) {
                 .pixel_size(24)
                 .build();
 
-            let mut button_classes = Vec::new();
-            button_classes.push("button1");
+            let button_classes = vec!["button1"];
             let button = gtk::Button::builder()
                 .css_classes(button_classes)
                 .child(&button_container)
