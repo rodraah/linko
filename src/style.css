@@ -1,0 +1,7 @@
+button.button1:hover{
+background: @accent_color;
+}
+
+/*button1:focus{*/
+/*background: @accent_color;*/
+/*}*/

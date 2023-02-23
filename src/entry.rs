@@ -22,19 +22,29 @@ pub fn entry(app_container: &gtk::Box) {
             //let command = app.2;
 
             // UI things
-            let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+            let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 15);
+            button_container.set_height_request(30);
             
+            let mut label_class:Vec<String> = Vec::new();
+            label_class.push("body".to_string());
+
             let label = gtk::Label::builder()
                 .label(&app_display_name)
                 .width_chars(5)
+                .css_classes(label_class)
                 .single_line_mode(true)
                 .build();
 
-            let button = gtk::Button::builder()
-                .height_request(20)
-                .width_request(20)
-                .name(&app_display_name)
+            let image = gtk::Image::builder()
                 .icon_name(&app_display_icon)
+                .pixel_size(24)
+                .build();
+
+            let mut button_classes = Vec::new();
+            button_classes.push("button1");
+            let button = gtk::Button::builder()
+                .css_classes(button_classes)
+                .child(&button_container)
                 .build();
 
             // when button is clicked, open the link 
@@ -49,9 +59,9 @@ pub fn entry(app_container: &gtk::Box) {
                     .expect("Failed to open URL with desired browser");
                 quit::with_code(1);
             });
-            button_container.append(&button);
+            button_container.append(&image);
             button_container.append(&label);
-            app_container.append(&button_container);
+            app_container.append(&button);
         }
     }
 }
