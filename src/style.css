@@ -1,7 +1,6 @@
 button.button1:hover{
-background: @accent_color;
+  background: @accent_color;
+	color: @window_bg_color;
 }
 
-/*button1:focus{*/
-/*background: @accent_color;*/
-/*}*/
+/* vim: set expandtab tabstop=2 shiftwidth=2: */
