@@ -1,6 +1,6 @@
 # Linko
 
-Linko is a tool for launching URLs with the browser of your choice. With Linko, you can quickly and easily switch between different browsers to open links, without having to worry about any complicated setup or configurations.
+Linko is a GTK4/libadwaita tool for launching URLs with the browser of your choice. With Linko, you can quickly and easily switch between different browsers to open links, without having to worry about any complicated setup or configurations.
 
 ![linko-scrot.png](linko-scrot.png)
 
