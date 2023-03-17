@@ -31,26 +31,32 @@ fn build_ui(application: &adw::Application) {
     window.set_default_width(300);
     window.set_default_height(320);
     window.set_title(Some("Linko"));
-    window.set_resizable(false);
+    //window.set_resizable(false);
+
+    // Window box to append the entries and the clipboard button widgets
+    let window_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    window_box.set_margin_top(30);
+    window_box.set_margin_bottom(15);
+    window_box.set_margin_start(30);
+    window_box.set_margin_end(30);
 
     load_css();
 
     let header_bar = gtk::HeaderBar::new();
     header_bar.set_decoration_layout(Some("icon:close"));
 
-    // container for the buttons.
+    // Container for the entries.
     let app_container = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    app_container.set_margin_top(30);
-    app_container.set_margin_bottom(30);
-    app_container.set_margin_start(30);
-    app_container.set_margin_end(30);
 
+    // Scrolled window for the entries.
     let scrolled_window = gtk::ScrolledWindow::new();
+    scrolled_window.set_vexpand(true);
     
+    // Set headerbar and show the window to minimize startup time
     window.set_titlebar(Some(&header_bar));
     window.show();
 
-    // browser entries.
+    // Browser entry parser
     entry::entry(&app_container);
 
     scrolled_window.set_child(Some(&app_container));
@@ -60,9 +66,9 @@ fn build_ui(application: &adw::Application) {
 
     let clipboard_button = gtk::Button::builder()
         .label("Copy to clipboard").css_classes(clipboard_classes)
+        .margin_top(10)
         .build();
-
-    // On click it copies the link to clipboard
+    
     clipboard_button.connect_clicked(move |_| {
         let pre_link:Vec<String> = std::env::args().collect();
         let link = pre_link[1].clone();
@@ -71,8 +77,9 @@ fn build_ui(application: &adw::Application) {
         clipboard.set_text(&link);
     });
     
-    app_container.append(
-        &gtk::Separator::new(gtk::Orientation::Horizontal));
-    app_container.append(&clipboard_button);
-    window.set_child(Some(&scrolled_window));
+    let action_bar = gtk::ActionBar::new();
+    action_bar.set_center_widget(Some(&clipboard_button));
+    window_box.append(&scrolled_window);
+    window_box.append(&action_bar);
+    window.set_child(Some(&window_box));
 }
