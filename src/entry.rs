@@ -16,6 +16,13 @@ pub fn entry(app_container: &gtk::Box) {
         // for every app, create a button and append it to the container.
         for app_desktop_path in dir {
             let app_desktop_path = app_desktop_path.expect("Failed to open the app path");
+            // if the file is not a desktop entry, skips it.
+            let app_path_string = app_desktop_path.file_name().into_string().unwrap();
+            if ! app_path_string.ends_with(".desktop") {
+                println!("\n{} is not a desktop entry, skipping it.", app_path_string);
+                continue
+            }
+
             let app = util::parse_desktop_file(app_desktop_path);
             let app_display_name = app.0;
             let app_display_icon = app.1;
@@ -55,7 +62,7 @@ pub fn entry(app_container: &gtk::Box) {
                     .arg(command)
                     .spawn()
                     .expect("Failed to open URL with desired browser");
-                quit::with_code(1);
+                quit::with_code(0);
             });
             button_container.append(&image);
             button_container.append(&label);
