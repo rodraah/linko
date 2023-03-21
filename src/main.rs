@@ -64,21 +64,28 @@ fn build_ui(application: &adw::Application) {
     // Create a button to copy the link to clipboard
     let clipboard_classes = vec!["heading", "pill", "button1"];
 
-    let clipboard_button = gtk::Button::builder()
-        .label("Copy to clipboard").css_classes(clipboard_classes)
+    let clipboard_label = "Copy to clipboard";
+    let clipboard_button = std::rc::Rc::new(
+        gtk::Button::builder()
+        .css_classes(clipboard_classes)
         .margin_top(10)
-        .build();
+        .build());
+    clipboard_button.set_label(clipboard_label);
     
+    // clone the button to change its value when clicked
+    let clipboard_button_clone = clipboard_button.clone();
     clipboard_button.connect_clicked(move |_| {
         let pre_link:Vec<String> = std::env::args().collect();
         let link = pre_link[1].clone();
         let display = gdk::Display::default().unwrap();
         let clipboard = display.clipboard();
         clipboard.set_text(&link);
+        clipboard_button_clone.set_label("Copied to clipboard!");
     });
     
     let action_bar = gtk::ActionBar::new();
-    action_bar.set_center_widget(Some(&clipboard_button));
+    action_bar.set_center_widget(Some(clipboard_button
+                                      .upcast_ref::<gtk::Button>()));
     window_box.append(&scrolled_window);
     window_box.append(&action_bar);
     window.set_child(Some(&window_box));
