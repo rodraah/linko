@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Linko
+Exec=linko %u
+Type=Application
+NoDisplay=true
+MimeType=x-scheme-handler/unknown;x-scheme-handler/about;x-scheme-handler/https;x-scheme-handler/http;text/html;
