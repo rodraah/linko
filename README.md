@@ -40,7 +40,7 @@ mv Linko.desktop ${HOME}/.local/share/applications/
 
 - Build dependencies:
 
-  !TODO
+  TODO!
   
 <br>  1. Clone the repository
     
