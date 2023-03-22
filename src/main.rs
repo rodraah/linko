@@ -31,6 +31,7 @@ fn build_ui(application: &adw::Application) {
     window.set_default_width(300);
     window.set_default_height(320);
     window.set_title(Some("Linko"));
+    window.set_icon_name(Some("linko"));
     //window.set_resizable(false);
 
     // Window box to append the entries and the clipboard button widgets
@@ -43,7 +44,7 @@ fn build_ui(application: &adw::Application) {
     load_css();
 
     let header_bar = gtk::HeaderBar::new();
-    header_bar.set_decoration_layout(Some("icon:close"));
+    header_bar.set_decoration_layout(Some("menu:close"));
 
     // Container for the entries.
     let app_container = gtk::Box::new(gtk::Orientation::Vertical, 10);
