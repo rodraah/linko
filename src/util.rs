@@ -16,7 +16,7 @@ pub fn split_string(line: &str, cut: &str, position: usize) -> String {
 pub fn get_app_path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| { 
         println!("There's no home directory!");
-        quit::with_code(1);
+        std::process::exit(1);
     });
     let apps_path = PathBuf::from(home).join(".config/linko");
     if ! apps_path.exists() {
@@ -74,7 +74,7 @@ pub fn parse_desktop_file(app_desktop_path: DirEntry) -> (String, String, String
     let args_vec:Vec<String> = std::env::args().collect();
     if args_vec.len() < 2 {
         println!("Error: There's no link!");
-        quit::with_code(1);
+        std::process::exit(1);
     }
     let link = &args_vec[1];
 

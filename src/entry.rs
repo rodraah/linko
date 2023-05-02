@@ -62,7 +62,7 @@ pub fn entry(app_container: &gtk::Box) {
                     .arg(command)
                     .spawn()
                     .expect("Failed to open URL with desired browser");
-                quit::with_code(0);
+                std::process::exit(0);
             });
             button_container.append(&image);
             button_container.append(&label);

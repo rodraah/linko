@@ -14,4 +14,4 @@ adw = { version = "0.3.1", package = "libadwaita" }
 gtk4 = "0.6.2"
 gdk4 = "0.6.2"
 
-quit = "1.1.4"
+# quit = "1.1.4"
