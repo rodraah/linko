@@ -1,12 +1,9 @@
-use gtk4 as gtk;
-use gtk::prelude::*;
-use std::{
-    fs::read_dir,
-    process::Command
-};
 use crate::util;
+use gtk::prelude::*;
+use gtk4 as gtk;
+use std::{fs::read_dir, process::Command};
 
-pub fn entry(app_container: &gtk::Box) {    
+pub fn entry(app_container: &gtk::Box) {
     let dir = read_dir(util::get_app_path()).unwrap().collect::<Vec<_>>();
     // check if the linko directory is empty
     if dir.is_empty() {
@@ -18,9 +15,9 @@ pub fn entry(app_container: &gtk::Box) {
             let app_desktop_path = app_desktop_path.expect("Failed to open the app path");
             // if the file is not a desktop entry, skips it.
             let app_path_string = app_desktop_path.file_name().into_string().unwrap();
-            if ! app_path_string.ends_with(".desktop") {
+            if !app_path_string.ends_with(".desktop") {
                 println!("\n{} is not a desktop entry, skipping it.", app_path_string);
-                continue
+                continue;
             }
 
             let app = util::parse_desktop_file(app_desktop_path);
@@ -31,7 +28,7 @@ pub fn entry(app_container: &gtk::Box) {
             // UI things
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 15);
             button_container.set_height_request(30);
-            
+
             let label_class = vec!["body"];
 
             let label = gtk::Label::builder()
@@ -52,7 +49,7 @@ pub fn entry(app_container: &gtk::Box) {
                 .child(&button_container)
                 .build();
 
-            // when button is clicked, open the link 
+            // when button is clicked, open the link
             // using the chosen browser
             button.connect_clicked(move |_| {
                 let command = &app.2;

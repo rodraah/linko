@@ -1,9 +1,9 @@
-use gtk4 as gtk;
-use gtk::prelude::*;
 use gtk::gdk;
+use gtk::prelude::*;
+use gtk4 as gtk;
 
-mod util;
 mod entry;
+mod util;
 
 fn main() {
     let application = adw::Application::builder()
@@ -52,7 +52,7 @@ fn build_ui(application: &adw::Application) {
     // Scrolled window for the entries.
     let scrolled_window = gtk::ScrolledWindow::new();
     scrolled_window.set_vexpand(true);
-    
+
     // Set headerbar and show the window to minimize startup time
     window.set_titlebar(Some(&header_bar));
     window.show();
@@ -74,32 +74,32 @@ fn build_ui(application: &adw::Application) {
     entry::entry(&app_container);
 
     scrolled_window.set_child(Some(&app_container));
-    
+
     // Create a button to copy the link to clipboard
     let clipboard_classes = vec!["heading", "pill", "button1"];
 
     let clipboard_label = "Copy to clipboard";
     let clipboard_button = std::rc::Rc::new(
         gtk::Button::builder()
-        .css_classes(clipboard_classes)
-        .margin_top(10)
-        .build());
+            .css_classes(clipboard_classes)
+            .margin_top(10)
+            .build(),
+    );
     clipboard_button.set_label(clipboard_label);
-    
+
     // clone the button to change its value when clicked
     let clipboard_button_clone = clipboard_button.clone();
     clipboard_button.connect_clicked(move |_| {
-        let pre_link:Vec<String> = std::env::args().collect();
+        let pre_link: Vec<String> = std::env::args().collect();
         let link = pre_link[1].clone();
         let display = gdk::Display::default().unwrap();
         let clipboard = display.clipboard();
         clipboard.set_text(&link);
         clipboard_button_clone.set_label("Copied to clipboard!");
     });
-    
+
     let action_bar = gtk::ActionBar::new();
-    action_bar.set_center_widget(Some(clipboard_button
-                                      .upcast_ref::<gtk::Button>()));
+    action_bar.set_center_widget(Some(clipboard_button.upcast_ref::<gtk::Button>()));
     window_box.append(&scrolled_window);
     window_box.append(&action_bar);
     window.set_child(Some(&window_box));
