@@ -3,4 +3,14 @@ button.button1:hover{
   color: @window_bg_color;
 }
 
+.add_button {
+  background-color: @window;
+  padding: 4px 9px;
+  border-radius: 50px;
+}
+
+.add_button:hover {
+  background-color: @accent_color;
+}
+
 /* vim: set expandtab tabstop=2 shiftwidth=2: */

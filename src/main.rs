@@ -18,7 +18,7 @@ fn load_css() {
     let provider = gtk::CssProvider::new();
     provider.load_from_data(include_str!("style.css"));
 
-    gtk::StyleContext::add_provider_for_display(
+    gtk::style_context_add_provider_for_display(
         &gdk::Display::default().expect("Could not connect to a display."),
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
@@ -56,6 +56,19 @@ fn build_ui(application: &adw::Application) {
     // Set headerbar and show the window to minimize startup time
     window.set_titlebar(Some(&header_bar));
     window.show();
+
+    // Add entries button
+    let add_button = gtk::Button::builder()
+        .label("+")
+        .css_classes(vec!["add_button"])
+        .build();
+    header_bar.pack_start(&add_button);
+
+    add_button.connect_clicked(move |_| {
+        util::add_entries_dialog();
+        // TODO!!
+        // util::reload_entries(&app_container);
+    });
 
     // Browser entry parser
     entry::entry(&app_container);
