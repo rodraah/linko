@@ -12,6 +12,7 @@ fn main() {
 
     application.connect_startup(build_ui);
     application.run();
+    application.quit();
 }
 
 fn load_css() {
@@ -32,7 +33,6 @@ fn build_ui(application: &adw::Application) {
     window.set_default_height(320);
     window.set_title(Some("Linko"));
     window.set_icon_name(Some("linko"));
-    //window.set_resizable(false);
 
     // Window box to append the entries and the clipboard button widgets
     let window_box = gtk::Box::new(gtk::Orientation::Vertical, 10);
@@ -64,8 +64,11 @@ fn build_ui(application: &adw::Application) {
         .build();
     header_bar.pack_start(&add_button);
 
+    let add_dialog = util::add_entries_dialog();
+    // TODO! If parent is set to window, it panics
+    // add_dialog.set_parent(&window);
     add_button.connect_clicked(move |_| {
-        util::add_entries_dialog();
+        add_dialog.show();
         // TODO!!
         // util::reload_entries(&app_container);
     });

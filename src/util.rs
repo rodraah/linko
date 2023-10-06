@@ -31,7 +31,7 @@ pub fn get_app_path() -> PathBuf {
     apps_path
 }
 
-pub fn add_entries_dialog() {
+pub fn add_entries_dialog() -> gtk::FileChooserDialog {
     let dialog = gtk::FileChooserDialog::builder()
         .title("Choose your browser's desktop entry: ")
         .action(gtk::FileChooserAction::Open)
@@ -50,6 +50,12 @@ pub fn add_entries_dialog() {
         ("Open", gtk::ResponseType::Accept),
         ("Cancel", gtk::ResponseType::Cancel),
     ]);
+
+    // Filters desktop entries
+    let filter = gtk::FileFilter::new();
+    filter.add_mime_type("application/x-desktop");
+    dialog.set_filter(&filter);
+
     dialog.connect_response(move |dialog, response| {
         if response == gtk::ResponseType::Accept {
             let file = dialog.file().unwrap();
@@ -69,7 +75,7 @@ pub fn add_entries_dialog() {
         };
         dialog.hide()
     });
-    dialog.show();
+    dialog
 }
 
 pub fn parse_desktop_file(app_desktop_path: DirEntry) -> (String, String, String) {
