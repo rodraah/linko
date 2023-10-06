@@ -97,13 +97,14 @@ fn build_ui(application: &adw::Application) {
         let link = pre_link[1].clone();
         let display = gdk::Display::default().unwrap();
         let clipboard = display.clipboard();
+
         clipboard.set_text(&link);
         clipboard_button_clone.set_label("Copied to clipboard!");
     });
 
-    let action_bar = gtk::ActionBar::new();
-    action_bar.set_center_widget(Some(clipboard_button.upcast_ref::<gtk::Button>()));
+    // TODO!! Choose between action_bar and just append the button
     window_box.append(&scrolled_window);
-    window_box.append(&action_bar);
+    // window_box.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
+    window_box.append(clipboard_button.upcast_ref::<gtk::Button>());
     window.set_child(Some(&window_box));
 }
