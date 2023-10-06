@@ -141,6 +141,6 @@ pub fn parse_desktop_file(app_desktop_path: DirEntry) -> (String, String, String
         post_command = split_string(&exec_command, " %U", 1);
         exec_command = split_string(&exec_command, " %U", 0);
     }
-    let command = format!("{} {} {}", exec_command, link, post_command);
+    let command = format!("{} \"{}\" {}", exec_command, link, post_command);
     (app_display_name, app_display_icon, command)
 }
