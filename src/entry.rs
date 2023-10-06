@@ -1,7 +1,7 @@
 use crate::util;
 use gtk::prelude::*;
 use gtk4 as gtk;
-use std::{fs::read_dir, process::Command};
+use std::{fs::read_dir, process::{Command, Stdio}};
 
 pub fn entry(app_container: &gtk::Box) {
     let mut dir: Vec<std::fs::DirEntry> = read_dir(util::get_app_path()).unwrap().filter_map(|entry| entry.ok()).collect();
@@ -58,6 +58,8 @@ pub fn entry(app_container: &gtk::Box) {
                 Command::new("sh")
                     .arg("-c")
                     .arg(command)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
                     .spawn()
                     .expect("Failed to open URL with desired browser");
                 std::process::exit(0);
