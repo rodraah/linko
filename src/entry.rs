@@ -4,15 +4,16 @@ use gtk4 as gtk;
 use std::{fs::read_dir, process::Command};
 
 pub fn entry(app_container: &gtk::Box) {
-    let dir = read_dir(util::get_app_path()).unwrap().collect::<Vec<_>>();
+    let mut dir: Vec<std::fs::DirEntry> = read_dir(util::get_app_path()).unwrap().filter_map(|entry| entry.ok()).collect();
     // check if the linko directory is empty
     if dir.is_empty() {
         let empty_label = gtk::Label::new(Some("There's no desktop files!"));
         app_container.append(&empty_label);
     } else {
+        dir.sort_by_key(|dir| dir.path());
         // for every app, create a button and append it to the container.
         for app_desktop_path in dir {
-            let app_desktop_path = app_desktop_path.expect("Failed to open the app path");
+            let app_desktop_path = app_desktop_path;
             // if the file is not a desktop entry, skips it.
             let app_path_string = app_desktop_path.file_name().into_string().unwrap();
             if !app_path_string.ends_with(".desktop") {
