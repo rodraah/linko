@@ -123,7 +123,7 @@ pub fn parse_desktop_file(app_desktop_path: DirEntry) -> (String, String, String
         println!("Error: There's no link!");
         std::process::exit(1);
     }
-    let link = &args_vec[1];
+    let link = format!("\"{}\"", args_vec[1..].join(" "));
 
     // TODO! use string.replace instead of creating three variables
     let mut exec_command = app_exec_command;
