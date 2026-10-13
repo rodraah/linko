@@ -106,10 +106,13 @@ fn build_ui(application: &adw::Application, target_url: Option<String>) {
         .build();
     header_bar.pack_start(&add_button);
 
-    add_button.connect_clicked(move |_| {
-        util::add_entries_dialog();
-        // TODO!!
-        // util::reload_entries(&app_container);
+    add_button.connect_clicked({
+        let parent = window.clone();
+        let container = app_container.clone();
+        let url = target_url.clone();
+        move |_| {
+            util::add_entries_dialog(&parent, &container, url.clone());
+        }
     });
 
     // Browser entry parser

@@ -8,6 +8,7 @@ use gtk::{gio, prelude::*};
 use gtk4 as gtk;
 
 use crate::desktop_entry::DesktopEntry;
+use crate::entry;
 
 pub fn split_string(line: &str, cut: &str, position: usize) -> String {
     if position > 1 {
@@ -54,11 +55,18 @@ pub fn get_app_path() -> PathBuf {
     apps_path
 }
 
-pub fn add_entries_dialog() {
+pub fn add_entries_dialog(
+    parent: &gtk::ApplicationWindow,
+    app_container: &gtk::Box,
+    target_url: Option<String>,
+) {
     let dialog = gtk::FileChooserDialog::builder()
         .title("Choose your browser's desktop entry: ")
         .action(gtk::FileChooserAction::Open)
         .build();
+    dialog.set_transient_for(Some(parent));
+    dialog.set_modal(true);
+    dialog.set_destroy_with_parent(true);
     let default_path = gio::File::for_path("/usr/share/applications");
     if let Err(e) = dialog.set_current_folder(Some(&default_path)) {
         eprintln!(
@@ -70,6 +78,7 @@ pub fn add_entries_dialog() {
         ("Open", gtk::ResponseType::Accept),
         ("Cancel", gtk::ResponseType::Cancel),
     ]);
+    let container = app_container.clone();
     dialog.connect_response(move |dialog, response| {
         if response == gtk::ResponseType::Accept {
             if let Some(file) = dialog.file() {
@@ -79,6 +88,11 @@ pub fn add_entries_dialog() {
                             let destination = get_app_path().join(file_name);
                             if let Err(e) = fs::copy(&path, &destination) {
                                 eprintln!("Error: Failed to copy desktop entry: {}", e);
+                            } else {
+                                while let Some(child) = container.first_child() {
+                                    container.remove(&child);
+                                }
+                                entry::entry(&container, target_url.clone());
                             }
                         }
                         None => {
