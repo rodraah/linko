@@ -7,6 +7,8 @@ use std::{
 use gtk::{gio, prelude::*};
 use gtk4 as gtk;
 
+use crate::desktop_entry::DesktopEntry;
+
 pub fn split_string(line: &str, cut: &str, position: usize) -> String {
     let cut = line.split_once(cut).unwrap_or_default();
     // Isn't necessary to handle the case where the string isn't cutted
@@ -72,7 +74,7 @@ pub fn add_entries_dialog() {
     dialog.show();
 }
 
-pub fn parse_desktop_file(app_desktop_path: DirEntry) -> (String, String, String) {
+pub fn parse_desktop_file(app_desktop_path: DirEntry) -> crate::desktop_entry::DesktopEntry {
     let app_desktop_path = app_desktop_path.path();
     let mut desktop_file =
         File::open(app_desktop_path).expect("Error: Failed to open the desktop file");
@@ -136,5 +138,9 @@ pub fn parse_desktop_file(app_desktop_path: DirEntry) -> (String, String, String
         exec_command = split_string(&exec_command, " %U", 0);
     }
     let command = format!("{} {} {}", exec_command, link, post_command);
-    (app_display_name, app_display_icon, command)
+    DesktopEntry {
+        name: app_display_name,
+        icon: app_display_icon,
+        exec: command,
+    }
 }

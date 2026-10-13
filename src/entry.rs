@@ -21,9 +21,6 @@ pub fn entry(app_container: &gtk::Box) {
             }
 
             let app = util::parse_desktop_file(app_desktop_path);
-            let app_display_name = app.0;
-            let app_display_icon = app.1;
-            //let command = app.2;
 
             // UI things
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 15);
@@ -32,14 +29,14 @@ pub fn entry(app_container: &gtk::Box) {
             let label_class = vec!["body"];
 
             let label = gtk::Label::builder()
-                .label(&app_display_name)
+                .label(&app.name)
                 .width_chars(5)
                 .css_classes(label_class)
                 .single_line_mode(true)
                 .build();
 
             let image = gtk::Image::builder()
-                .icon_name(&app_display_icon)
+                .icon_name(&app.icon)
                 .pixel_size(24)
                 .build();
 
@@ -52,7 +49,7 @@ pub fn entry(app_container: &gtk::Box) {
             // when button is clicked, open the link
             // using the chosen browser
             button.connect_clicked(move |_| {
-                let command = &app.2;
+                let command = &app.exec;
                 println!("{}", command);
                 Command::new("sh")
                     .arg("-c")

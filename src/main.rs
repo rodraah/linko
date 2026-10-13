@@ -2,6 +2,7 @@ use gtk::gdk;
 use gtk::prelude::*;
 use gtk4 as gtk;
 
+mod desktop_entry;
 mod entry;
 mod util;
 
