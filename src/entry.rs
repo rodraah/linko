@@ -50,7 +50,10 @@ pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
                 }
             };
 
-            // UI things
+            // UI things: one horizontal row per browser:
+            // expanding browser button (icon + name) + small remove button.
+            let row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+
             let button_container = gtk::Box::new(gtk::Orientation::Horizontal, 15);
             button_container.set_height_request(30);
 
@@ -72,6 +75,7 @@ pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
             let button = gtk::Button::builder()
                 .css_classes(button_classes)
                 .child(&button_container)
+                .hexpand(true)
                 .build();
 
             // when button is clicked, open the link
@@ -94,7 +98,35 @@ pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
             });
             button_container.append(&image);
             button_container.append(&label);
-            app_container.append(&button);
+
+            let remove_image = gtk::Image::from_icon_name("user-trash-symbolic");
+            let remove_button = gtk::Button::builder()
+                .child(&remove_image)
+                .tooltip_text("Remove")
+                .css_classes(vec!["destructive-action"])
+                .build();
+
+            let container_for_remove = app_container.clone();
+            let url_for_remove = target_url.clone();
+            let file_name_for_remove = app_path_string.clone();
+            remove_button.connect_clicked(move |_| {
+                let path = util::get_app_path().join(&file_name_for_remove);
+                if let Err(e) = std::fs::remove_file(&path) {
+                    eprintln!(
+                        "Error: Failed to remove desktop entry {}: {}",
+                        file_name_for_remove, e
+                    );
+                    return;
+                }
+                while let Some(child) = container_for_remove.first_child() {
+                    container_for_remove.remove(&child);
+                }
+                entry(&container_for_remove, url_for_remove.clone());
+            });
+
+            row.append(&button);
+            row.append(&remove_button);
+            app_container.append(&row);
         }
     }
 }
