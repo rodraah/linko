@@ -1,17 +1,52 @@
 use gtk::gdk;
+use gtk::gio;
 use gtk::prelude::*;
 use gtk4 as gtk;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 mod desktop_entry;
 mod entry;
 mod util;
 
 fn main() {
+    let pending_url: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(util::get_target_url()));
+
     let application = adw::Application::builder()
         .application_id("rodraah.Linko")
+        .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)
         .build();
 
-    application.connect_startup(build_ui);
+    application.connect_startup(|_| load_css());
+
+    {
+        let pending_url = pending_url.clone();
+        application.connect_activate(move |application| {
+            build_ui(application, pending_url.borrow().clone());
+        });
+    }
+
+    {
+        let pending_url = pending_url.clone();
+        application.connect_command_line(move |application, command_line| {
+            let args = command_line.arguments();
+            let joined = args
+                .iter()
+                .skip(1)
+                .map(|arg| arg.to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+                .join(" ");
+            let url = if joined.is_empty() {
+                None
+            } else {
+                Some(joined)
+            };
+            *pending_url.borrow_mut() = url;
+            application.activate();
+            0
+        });
+    }
+
     application.run();
 }
 
@@ -19,16 +54,24 @@ fn load_css() {
     let provider = gtk::CssProvider::new();
     provider.load_from_data(include_str!("style.css"));
 
-    gtk::style_context_add_provider_for_display(
-        &gdk::Display::default().expect("Could not connect to a display."),
-        &provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
+    if let Some(display) = gdk::Display::default() {
+        gtk::style_context_add_provider_for_display(
+            &display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    } else {
+        eprintln!("Error: Could not connect to a display.");
+    }
 }
 
-fn build_ui(application: &adw::Application) {
-    let window = gtk::Window::new();
-    window.set_application(Some(application));
+fn build_ui(application: &adw::Application, target_url: Option<String>) {
+    if let Some(window) = application.active_window() {
+        window.present();
+        return;
+    }
+
+    let window = gtk::ApplicationWindow::new(application);
     window.set_default_width(300);
     window.set_default_height(320);
     window.set_title(Some("Linko"));
@@ -42,8 +85,6 @@ fn build_ui(application: &adw::Application) {
     window_box.set_margin_start(30);
     window_box.set_margin_end(30);
 
-    load_css();
-
     let header_bar = gtk::HeaderBar::new();
     header_bar.set_decoration_layout(Some("menu:close"));
 
@@ -56,7 +97,7 @@ fn build_ui(application: &adw::Application) {
 
     // Set headerbar and show the window to minimize startup time
     window.set_titlebar(Some(&header_bar));
-    window.show();
+    window.present();
 
     // Add entries button
     let add_button = gtk::Button::builder()
@@ -72,7 +113,7 @@ fn build_ui(application: &adw::Application) {
     });
 
     // Browser entry parser
-    entry::entry(&app_container);
+    entry::entry(&app_container, target_url.clone());
 
     scrolled_window.set_child(Some(&app_container));
 
@@ -90,14 +131,20 @@ fn build_ui(application: &adw::Application) {
 
     // clone the button to change its value when clicked
     let clipboard_button_clone = clipboard_button.clone();
-    clipboard_button.connect_clicked(move |_| {
-        let pre_link: Vec<String> = std::env::args().collect();
-        let link = pre_link[1].clone();
-        let display = gdk::Display::default().unwrap();
-        let clipboard = display.clipboard();
-        clipboard.set_text(&link);
-        clipboard_button_clone.set_label("Copied to clipboard!");
-    });
+    if let Some(link) = target_url {
+        clipboard_button.connect_clicked(move |_| {
+            if let Some(display) = gdk::Display::default() {
+                let clipboard = display.clipboard();
+                clipboard.set_text(&link);
+                clipboard_button_clone.set_label("Copied to clipboard!");
+            } else {
+                eprintln!("Error: Could not connect to a display.");
+            }
+        });
+    } else {
+        clipboard_button.set_label("No link to copy");
+        clipboard_button.set_sensitive(false);
+    }
 
     let action_bar = gtk::ActionBar::new();
     action_bar.set_center_widget(Some(clipboard_button.upcast_ref::<gtk::Button>()));

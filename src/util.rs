@@ -10,25 +10,46 @@ use gtk4 as gtk;
 use crate::desktop_entry::DesktopEntry;
 
 pub fn split_string(line: &str, cut: &str, position: usize) -> String {
-    let cut = line.split_once(cut).unwrap_or_default();
-    // Isn't necessary to handle the case where the string isn't cutted
-    match position {
-        0 => cut.0.to_string(),
-        1 => cut.1.to_string(),
-        _ => panic!(),
+    if position > 1 {
+        return String::new();
+    }
+    match line.split_once(cut) {
+        None => String::new(),
+        Some((before, after)) => {
+            if position == 0 {
+                before.to_string()
+            } else {
+                after.to_string()
+            }
+        }
     }
 }
 
+pub fn get_target_url() -> Option<String> {
+    let joined = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+    if joined.is_empty() {
+        None
+    } else {
+        Some(joined)
+    }
+}
+
+pub fn launch(entry: &DesktopEntry, url: &str) -> std::io::Result<std::process::Child> {
+    std::process::Command::new(&entry.program)
+        .args(&entry.args)
+        .arg(url)
+        .spawn()
+}
+
 pub fn get_app_path() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| {
-        println!("Error: Failed to read home directory");
-        std::process::exit(1);
-    });
-    let apps_path = PathBuf::from(home).join(".config/linko");
+    let apps_path = match std::env::var("HOME") {
+        Ok(home) => PathBuf::from(home).join(".config/linko"),
+        Err(_) => std::env::temp_dir().join("linko"),
+    };
     if !apps_path.exists() {
-        create_dir_all(&apps_path).unwrap_or_else(|e| {
-            println!("Error: Failed to create config directory: {}", e);
-        });
+        if let Err(e) = create_dir_all(&apps_path) {
+            eprintln!("Error: Failed to create config directory: {}", e);
+        }
     }
     apps_path
 }
@@ -39,108 +60,184 @@ pub fn add_entries_dialog() {
         .action(gtk::FileChooserAction::Open)
         .build();
     let default_path = gio::File::for_path("/usr/share/applications");
-    dialog
-        .set_current_folder(Some(&default_path))
-        .unwrap_or_else(|e| {
-            println!(
-                "Error: Failed to read \"usr/share/applications\" folder: {}",
-                e
-            );
-            std::process::exit(1)
-        });
+    if let Err(e) = dialog.set_current_folder(Some(&default_path)) {
+        eprintln!(
+            "Error: Failed to read \"usr/share/applications\" folder: {}",
+            e
+        );
+    }
     dialog.add_buttons(&[
         ("Open", gtk::ResponseType::Accept),
         ("Cancel", gtk::ResponseType::Cancel),
     ]);
     dialog.connect_response(move |dialog, response| {
         if response == gtk::ResponseType::Accept {
-            let file = dialog.file().unwrap();
-            let file_name: String = file
-                .path()
-                .unwrap()
-                .as_path()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned();
-            let path = file.path().unwrap().as_path().to_owned();
-            let destination = get_app_path().as_path().to_str().unwrap().to_owned();
-            let destination = format!("{destination}/{file_name}");
-            fs::copy(path, destination).unwrap();
+            if let Some(file) = dialog.file() {
+                if let Some(path) = file.path() {
+                    match path.file_name().and_then(|n| n.to_str()) {
+                        Some(file_name) => {
+                            let destination = get_app_path().join(file_name);
+                            if let Err(e) = fs::copy(&path, &destination) {
+                                eprintln!("Error: Failed to copy desktop entry: {}", e);
+                            }
+                        }
+                        None => {
+                            eprintln!("Error: Invalid file name for desktop entry");
+                        }
+                    }
+                } else {
+                    eprintln!("Error: Could not resolve chosen file path");
+                }
+            } else {
+                eprintln!("Error: No file chosen");
+            }
         };
-        dialog.hide()
+        dialog.destroy()
     });
     dialog.show();
 }
 
-pub fn parse_desktop_file(app_desktop_path: DirEntry) -> crate::desktop_entry::DesktopEntry {
-    let app_desktop_path = app_desktop_path.path();
-    let mut desktop_file =
-        File::open(app_desktop_path).expect("Error: Failed to open the desktop file");
-    let mut desktop_content = String::new();
-    desktop_file
-        .read_to_string(&mut desktop_content)
-        .expect("Error: Failed to read the desktop file");
-    // Set fallback values for app_display_name, app_exec_command and app_display_icon.
-    let mut app_display_name = String::new();
-    let mut app_exec_command = String::new();
-    let mut app_display_icon: String = "web-browser".to_string();
-    // Check if the exec command contains %u and %U
-    let mut contains_u = false;
-    let mut contains_upper_u = false;
-    // Check if it's the first entry for name, exec and icon
-    let mut name_check = false;
-    let mut exec_check = false;
-    let mut icon_check = false;
-    for line in desktop_content.lines() {
-        if line.starts_with('#') {
-            continue;
-        };
-        if line.starts_with("Name=") && !name_check {
-            app_display_name = split_string(line, "Name=", 1);
-            name_check = true;
-            continue;
-        };
-        if line.starts_with("Exec=") && !exec_check {
-            app_exec_command = split_string(line, "Exec=", 1);
-            if line.contains("%u") {
-                contains_u = true;
-            } else if line.contains("%U") {
-                contains_upper_u = true;
-            };
-            exec_check = true;
-            continue;
-        };
-        if line.starts_with("Icon=") && !icon_check {
-            app_display_icon = split_string(line, "Icon=", 1);
-            icon_check = true;
-            continue;
-        };
-    }
-    // Get the link from command-line arguments and check if
-    // a link is provided
-    let args_vec: Vec<String> = std::env::args().collect();
-    if args_vec.len() < 2 {
-        println!("Error: There's no link!");
-        std::process::exit(1);
-    }
-    let link = format!("\"{}\"", args_vec[1..].join(" "));
+/// Split an `Exec=` value into program + args, respecting single/double
+/// quotes and stripping freedesktop field codes (`%u`, `%U`, `%f`, ...).
+/// `%%` is collapsed to a literal `%`.
+fn parse_exec_value(exec: &str) -> (String, Vec<String>) {
+    // Tokenize respecting single/double quotes.
+    let mut tokens: Vec<String> = Vec::new();
+    let mut current = String::new();
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut in_token = false;
 
-    // TODO! use string.replace instead of creating three variables
-    let mut exec_command = app_exec_command;
-    let mut post_command = String::new();
-    if contains_u {
-        post_command = split_string(&exec_command, " %u", 1);
-        exec_command = split_string(&exec_command, " %u", 0);
-    } else if contains_upper_u {
-        post_command = split_string(&exec_command, " %U", 1);
-        exec_command = split_string(&exec_command, " %U", 0);
+    for c in exec.chars() {
+        if in_single {
+            if c == '\'' {
+                in_single = false;
+            } else {
+                current.push(c);
+            }
+        } else if in_double {
+            if c == '"' {
+                in_double = false;
+            } else {
+                current.push(c);
+            }
+        } else if c == '\'' {
+            in_single = true;
+            in_token = true;
+        } else if c == '"' {
+            in_double = true;
+            in_token = true;
+        } else if c.is_whitespace() {
+            if in_token {
+                tokens.push(std::mem::take(&mut current));
+                in_token = false;
+            }
+        } else {
+            current.push(c);
+            in_token = true;
+        }
     }
-    let command = format!("{} {} {}", exec_command, link, post_command);
-    DesktopEntry {
-        name: app_display_name,
-        icon: app_display_icon,
-        exec: command,
+    if in_token {
+        tokens.push(current);
     }
+
+    const FIELD_CODES: [&str; 13] = [
+        "%u", "%U", "%f", "%F", "%d", "%D", "%n", "%N", "%i", "%c", "%k", "%v", "%m",
+    ];
+
+    let mut args: Vec<String> = Vec::new();
+    let mut program = String::new();
+    let mut first = true;
+    for token in tokens {
+        if token == "%%" {
+            if first {
+                program = "%".to_string();
+                first = false;
+            } else {
+                args.push("%".to_string());
+            }
+            continue;
+        }
+        if FIELD_CODES.contains(&token.as_str()) {
+            // Remembered (URL/file placeholder) but intentionally not embedded.
+            continue;
+        }
+        // Collapse escaped percent, then strip any embedded field codes.
+        let mut cleaned = token.replace("%%", "%");
+        for code in FIELD_CODES {
+            if cleaned.contains(code) {
+                cleaned = cleaned.replace(code, "");
+            }
+        }
+        if cleaned.is_empty() {
+            continue;
+        }
+        if first {
+            program = cleaned;
+            first = false;
+        } else {
+            args.push(cleaned);
+        }
+    }
+
+    (program, args)
+}
+
+pub fn parse_desktop_file(
+    app_desktop_path: DirEntry,
+) -> Option<crate::desktop_entry::DesktopEntry> {
+    let path = app_desktop_path.path();
+    let fallback_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "Unknown".to_string());
+
+    let mut desktop_file = File::open(&path).ok()?;
+    let mut desktop_content = String::new();
+    desktop_file.read_to_string(&mut desktop_content).ok()?;
+
+    let mut app_display_name: Option<String> = None;
+    let mut app_exec_command: Option<String> = None;
+    let mut app_display_icon: Option<String> = None;
+
+    for line in desktop_content.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with('#') {
+            continue;
+        };
+        if trimmed.starts_with("Name=") && app_display_name.is_none() {
+            let value = split_string(trimmed, "Name=", 1);
+            if !value.trim().is_empty() {
+                app_display_name = Some(value);
+            }
+            continue;
+        };
+        if trimmed.starts_with("Exec=") && app_exec_command.is_none() {
+            let value = split_string(trimmed, "Exec=", 1);
+            if !value.trim().is_empty() {
+                app_exec_command = Some(value);
+            }
+            continue;
+        };
+        if trimmed.starts_with("Icon=") && app_display_icon.is_none() {
+            let value = split_string(trimmed, "Icon=", 1);
+            if !value.trim().is_empty() {
+                app_display_icon = Some(value);
+            }
+            continue;
+        };
+    }
+
+    let exec_raw = app_exec_command?;
+    let (program, args) = parse_exec_value(&exec_raw);
+    if program.trim().is_empty() {
+        return None;
+    }
+
+    Some(DesktopEntry {
+        name: app_display_name.unwrap_or(fallback_name),
+        icon: app_display_icon.unwrap_or_else(|| "web-browser".to_string()),
+        program,
+        args,
+    })
 }
