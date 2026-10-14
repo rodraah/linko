@@ -1,55 +1,22 @@
-use crate::util;
 use gtk::prelude::*;
 use gtk4 as gtk;
-use std::fs::read_dir;
 
-pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
+use crate::{desktop, launcher};
+
+pub fn populate(app_container: &gtk::Box, target_url: Option<String>) {
     if target_url.is_none() {
         let no_url_label = gtk::Label::new(Some("No URL provided"));
         app_container.append(&no_url_label);
     }
 
-    let dir_entries = match read_dir(util::get_app_path()) {
-        Ok(entries) => entries.collect::<Vec<_>>(),
-        Err(e) => {
-            eprintln!("Error: Failed to read application directory: {}", e);
-            let error_label = gtk::Label::new(Some("Failed to read application directory"));
-            app_container.append(&error_label);
-            return;
-        }
-    };
+    let dir_entries = desktop::installed_entries();
     // check if the linko directory is empty
     if dir_entries.is_empty() {
         let empty_label = gtk::Label::new(Some("There's no desktop files!"));
         app_container.append(&empty_label);
     } else {
         // for every app, create a button and append it to the container.
-        for app_desktop_path in dir_entries {
-            let app_desktop_path = match app_desktop_path {
-                Ok(entry) => entry,
-                Err(e) => {
-                    eprintln!("Error: Failed to open an app path: {}", e);
-                    continue;
-                }
-            };
-            // if the file is not a desktop entry, skips it.
-            let app_path_string = app_desktop_path.file_name().to_string_lossy().into_owned();
-            if !app_path_string.ends_with(".desktop") {
-                println!("\n{} is not a desktop entry, skipping it.", app_path_string);
-                continue;
-            }
-
-            let app = match util::parse_desktop_file(app_desktop_path) {
-                Some(app) => app,
-                None => {
-                    eprintln!(
-                        "Warning: Skipping unreadable desktop entry: {}",
-                        app_path_string
-                    );
-                    continue;
-                }
-            };
-
+        for (app_path_string, app) in dir_entries {
             // UI things: one horizontal row per browser:
             // expanding browser button (icon + name) + small remove button.
             let row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
@@ -89,7 +56,7 @@ pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
                         return;
                     }
                 };
-                match util::launch(&app, url) {
+                match launcher::launch(&app, url) {
                     Ok(_) => std::process::exit(0),
                     Err(e) => {
                         eprintln!("Error: Failed to open URL with desired browser: {}", e);
@@ -110,8 +77,7 @@ pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
             let url_for_remove = target_url.clone();
             let file_name_for_remove = app_path_string.clone();
             remove_button.connect_clicked(move |_| {
-                let path = util::get_app_path().join(&file_name_for_remove);
-                if let Err(e) = std::fs::remove_file(&path) {
+                if let Err(e) = desktop::remove_entry(&file_name_for_remove) {
                     eprintln!(
                         "Error: Failed to remove desktop entry {}: {}",
                         file_name_for_remove, e
@@ -121,7 +87,7 @@ pub fn entry(app_container: &gtk::Box, target_url: Option<String>) {
                 while let Some(child) = container_for_remove.first_child() {
                     container_for_remove.remove(&child);
                 }
-                entry(&container_for_remove, url_for_remove.clone());
+                populate(&container_for_remove, url_for_remove.clone());
             });
 
             row.append(&button);

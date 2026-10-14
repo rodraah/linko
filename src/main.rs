@@ -5,12 +5,15 @@ use gtk4 as gtk;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+mod desktop;
 mod desktop_entry;
+mod dialogs;
 mod entry;
-mod util;
+mod launcher;
 
 fn main() {
-    let pending_url: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(util::get_target_url()));
+    let pending_url: Rc<RefCell<Option<String>>> =
+        Rc::new(RefCell::new(launcher::get_target_url()));
 
     let application = adw::Application::builder()
         .application_id("rodraah.Linko")
@@ -30,17 +33,11 @@ fn main() {
         let pending_url = pending_url.clone();
         application.connect_command_line(move |application, command_line| {
             let args = command_line.arguments();
-            let joined = args
-                .iter()
-                .skip(1)
-                .map(|arg| arg.to_string_lossy().into_owned())
-                .collect::<Vec<_>>()
-                .join(" ");
-            let url = if joined.is_empty() {
-                None
-            } else {
-                Some(joined)
-            };
+            let url = launcher::target_url_from_args(
+                args.iter()
+                    .skip(1)
+                    .map(|arg| arg.to_string_lossy().into_owned()),
+            );
             *pending_url.borrow_mut() = url;
             application.activate();
             0
@@ -111,12 +108,12 @@ fn build_ui(application: &adw::Application, target_url: Option<String>) {
         let container = app_container.clone();
         let url = target_url.clone();
         move |_| {
-            util::add_entries_dialog(&parent, &container, url.clone());
+            dialogs::add_entries_dialog(&parent, &container, url.clone());
         }
     });
 
     // Browser entry parser
-    entry::entry(&app_container, target_url.clone());
+    entry::populate(&app_container, target_url.clone());
 
     scrolled_window.set_child(Some(&app_container));
 
